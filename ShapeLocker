@@ -1,0 +1,64 @@
+'図形のロックを管理するクラスモジュール
+'クラス名はShapeLockerとする
+Option Explicit
+
+'図形のロック状態を記憶するメンバ変数
+'キーは図形の名前、値はロック状態（TrueまたはFalse）
+Private m_LockStatus As Collection
+
+'コンストラクタ
+'メンバ変数を初期化する
+Private Sub Class_Initialize()
+    Set m_LockStatus = New Collection
+End Sub
+
+'デストラクタ
+'メンバ変数を解放する
+Private Sub Class_Terminate()
+    Set m_LockStatus = Nothing
+End Sub
+
+'図形のロックを解除するメソッド
+'引数は対象のシート
+Public Sub UnlockShapes(ByVal TargetSheet As Worksheet)
+    Dim shp As Shape
+    'シートの保護を解除
+    TargetSheet.Unprotect
+    'シートの全図形に対して
+    For Each shp In TargetSheet.Shapes
+        '図形の名前とロック状態をメンバ変数に追加
+        m_LockStatus.Add shp.Locked, shp.Name
+        '図形のロックを解除
+        shp.Locked = False
+    Next shp
+End Sub
+
+'図形のロックを元に戻すメソッド
+'引数は対象のシート
+Public Sub RestoreShapes(ByVal TargetSheet As Worksheet)
+    Dim shp As Shape
+    Dim i As Long
+    'シートの全図形に対して
+    For Each shp In TargetSheet.Shapes
+        'メンバ変数に保存されたロック状態を取得
+        i = i + 1
+        shp.Locked = m_LockStatus(i)
+    Next shp
+    'シートの保護を設定
+    TargetSheet.Protect
+End Sub
+
+'図形のロックを設定するメソッド
+'引数は対象のシートとロック状態
+Public Sub LockShapes(ByVal TargetSheet As Worksheet, ByVal LockStatus As Boolean)
+    Dim shp As Shape
+    'シートの保護を解除
+    TargetSheet.Unprotect
+    'シートの全図形に対して
+    For Each shp In TargetSheet.Shapes
+        '図形のロックを設定
+        shp.Locked = LockStatus
+    Next shp
+    'シートの保護を設定
+    TargetSheet.Protect
+End Sub
