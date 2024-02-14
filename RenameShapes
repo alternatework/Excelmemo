@@ -1,0 +1,46 @@
+Sub RenameShapes()
+    Dim shp As Shape
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim newName As String
+    '現在のブックを変数に格納
+    Set wb = ActiveWorkbook
+    '現在のシートを変数に格納
+    Set ws = ActiveSheet
+    '新しいブックを作成
+    Workbooks.Add
+    '新しいブックのシートを変数に格納
+    Set ws2 = ActiveSheet
+    '現在のブックの全図形に対して
+    For Each shp In wb.Worksheets(1).Shapes
+        '図形の名前を新しいブックのシートに出力
+        i = i + 1
+        ws2.Cells(i, 1).Value = shp.Name
+    Next shp
+    '新しいブックのシートを保存
+    ws2.SaveAs "図形リスト.xlsx"
+    '新しいブックのシートを閉じる
+    ws2.Close
+    'メッセージボックスで案内
+    MsgBox "図形リスト.xlsxを開いて、B列に新しい名前を入力してください。" & vbNewLine & _
+           "入力が終わったら、OKボタンを押してください。", vbOKOnly, "図形リネーム"
+    '図形リスト.xlsxを開く
+    Workbooks.Open "図形リスト.xlsx"
+    '図形リスト.xlsxのシートを変数に格納
+    Set ws2 = ActiveSheet
+    '図形リスト.xlsxの全行に対して
+    For i = 1 To ws2.UsedRange.Rows.Count
+        'B列に新しい名前が入力されているかチェック
+        If ws2.Cells(i, 2).Value <> "" Then
+            '新しい名前を変数に格納
+            newName = ws2.Cells(i, 2).Value
+            '現在のブックの図形の名前を新しい名前に変更
+            wb.Worksheets(1).Shapes(ws2.Cells(i, 1).Value).Name = newName
+        End If
+    Next i
+    '図形リスト.xlsxを閉じる
+    ws2.Close False
+    'メッセージボックスで完了を伝える
+    MsgBox "図形の名前を変更しました。", vbInformation, "図形リネーム"
+End Sub
