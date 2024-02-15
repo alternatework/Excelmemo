@@ -1,0 +1,31 @@
+'ワークシートの名前を配列に格納
+Dim wsNames As Variant
+wsNames = Array("Sheet1", "Sheet2", "Sheet3")
+
+'配列の要素数を取得
+Dim wsCount As Long
+wsCount = UBound(wsNames) - LBound(wsNames) + 1
+
+'配列の各要素に対してループ
+Dim i As Long
+For i = 0 To wsCount - 1
+    '配列の要素をワークシート名として指定
+    Dim ws As Worksheet
+    Set ws = Worksheets(wsNames(i))
+    
+    'ワークシートのデータを配列に格納
+    Dim wsData As Variant
+    wsData = ws.UsedRange.Value
+    
+    '配列のデータを処理するコードを記述
+    '例：配列の要素を2倍にする
+    Dim r As Long, c As Long
+    For r = 1 To UBound(wsData, 1)
+        For c = 1 To UBound(wsData, 2)
+            wsData(r, c) = wsData(r, c) * 2
+        Next c
+    Next r
+    
+    '配列のデータをワークシートに出力
+    ws.UsedRange.Value = wsData
+Next i
