@@ -26,3 +26,4 @@ Power Query Editorを開く:
 クエリエディターの左上にある閉じると適用ボタンをクリックして変更を保存し、元のExcelファイルにデータを結合します。
 Power QueryはExcel 2016以降で利用可能で、上記の手順は基本的なものです。手順は実際のデータの形式によって変わる可能性があるため、具体的なデータの構造に合わせて調整が必要かもしれません。
 ＝IF（SUM（IF（（A21＞＝Sheet3！A1:A100）＊（A21＜＝Sheet3！B1:B100）＊（（ISNUMBER（SEARCH（”3－Mtr”、Sheet3！C1:C100）））＋（ISNUMBER（SEARCH（”3－Mtr”、Sheet3！D1:D100））））、1、0））＞0、””、””）×
+=IF(SUM(IF((A21>=Sheet3!A1:A100)*(A21<=Sheet3!B1:B100)*((ISNUMBER(SEARCH("3-Mtr", Sheet3!C1:C100)))+(ISNUMBER(SEARCH("3-Mtr", Sheet3!D1:D100)))), 1, 0))>0, "×", "")
