@@ -1,2 +1,4 @@
 # Excelmemo
 #=IF(WEEKDAY(B4)=1,IF(COUNTIF(B:B,B4+1)=1,B4+2,IF(COUNTIF(B:B,B4+2)=1,B4+3,IF(COUNTIF(B:B,B4+3)=1,B4+4,IF(COUNTIF(B:B,B4+4)=1,B4+5,IF(COUNTIF(B:B,B4+5)=1,B4+6,B4+1))))),B4)
+
+=IF(SUM(IF((A21>=Sheet3!A1:A100)*(A21<=Sheet3!B1:B100)*(Sheet3!C1:C100="3-Mtr")+(Sheet3!D1:D100="3-Mtr"), 1, 0))>0, "×", "")
