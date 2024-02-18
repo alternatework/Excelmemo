@@ -1,0 +1,16 @@
+Private Sub CheckBox1_Click()
+    ' チェックボックスがクリックされたときの処理
+
+    ' チェックボックスがTrueの場合の条件を追加
+    If CheckBox1.Value = True Then
+        ' フィールドに値を入れる処理
+        ' ここでは例として、予定表の特定のフィールドにデータを格納する処理を示しています
+        Dim selectedItem As String
+        selectedItem = "データ1" ' チェックボックスごとに異なるデータを取得
+
+        ' フィールドにデータを追加する処理
+        ' 例: Item フィールドにデータを追加する
+        Me.Item.UserProperties.Add "CustomFieldName", olText, True, True
+        Me.Item.UserProperties("CustomFieldName").Value = selectedItem
+    End If
+End Sub
