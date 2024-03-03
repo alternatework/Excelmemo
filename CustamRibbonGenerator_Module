@@ -1,0 +1,235 @@
+Option Explicit
+
+Sub macro1(ByVal control As IRibbonControl)
+  Dim selector As New ExcelFileSelector
+    If selector.SelectFile Then
+        ' PowerShellスクリプトの内容
+        Dim psScript As String
+        
+        psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
+                    "[IO.Compression.ZipFile]::ExtractToDirectory('" & selector.Path & "', 'extracted');"
+                   
+                   ' カスタムリボン新規追加
+                    psScript = psScript & _
+                    "if (!(Test-Path -Path 'extracted\customUI')) {" & _
+                    "New-Item -ItemType Directory -Path 'extracted\customUI';" & _
+                    "}" & _
+                    "$customUIContent = '<customUI xmlns=""http://schemas.microsoft.com/office/2006/01/customui"">" & _
+                    "<ribbon><tabs><tab id=""CustomTab"" label=""拡張アドイン""><group id=""GroupA"" label=""GrouplabelA"">" & _
+                    "<button id=""ButtonA"" label=""ButtonlabelA"" imageMso=""Bullets"" size=""large"" onAction=""ThisWorkbook.macro1"" />" & _
+                    "</group></tab></tabs></ribbon></customUI>';" & _
+                    "Set-Content -Path 'extracted\customUI\customUI.xml' -Value $customUIContent -Encoding UTF8;" & _
+                    "$xml = New-Object System.Xml.XmlDocument;" & _
+                    "if (Test-Path -Path 'extracted\_rels\.rels') {" & _
+                    "$xml.Load('extracted\_rels\.rels');" & _
+                    "$relationship = $xml.CreateElement('Relationship', $xml.DocumentElement.NamespaceURI);" & _
+                    "$relationship.SetAttribute('Id', 'someID');" & _
+                    "$relationship.SetAttribute('Type', 'http://schemas.microsoft.com/office/2006/relationships/ui/extensibility');" & _
+                    "$relationship.SetAttribute('Target', 'customUI/customUI.xml');" & _
+                    "if ($xml.DocumentElement -ne $null) {" & _
+                    "$nsManager = New-Object System.Xml.XmlNamespaceManager($xml.NameTable);" & _
+                    "$nsManager.AddNamespace('ns', $xml.DocumentElement.NamespaceURI);" & _
+                    "$existingRelationship = $xml.DocumentElement.SelectSingleNode('//ns:Relationship[@Id=''someID'']', $nsManager);" & _
+                    "if ($existingRelationship -eq $null) {" & "$xml.DocumentElement.AppendChild($relationship);" & "}" & _
+                    "$xml.Save('extracted\_rels\.rels');" & "}" & "}" & _
+                    "Remove-Item -Path '" & selector.Path & "';" & _
+                    "[IO.Compression.ZipFile]::CreateFromDirectory('extracted', '" & selector.Path & "');" & _
+                    "Remove-Item -Recurse -Force 'extracted';"
+                    
+psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
+                    "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+                    "Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
+                                "Read-Host 'Press Enter to exit...'"
+
+' PowerShellスクリプトのパス
+Dim psScriptPath As String
+psScriptPath = Environ("LOCALAPPDATA") & "\temp\script.ps1"
+
+' PowerShellスクリプトを生成
+Dim fso As Object
+Set fso = CreateObject("Scripting.FileSystemObject")
+Dim ts As Object
+Set ts = fso.CreateTextFile(psScriptPath, True)
+ts.WriteLine psScript
+ts.Close
+
+' ショートカットのパス
+Dim shortcutPath As String
+shortcutPath = Environ("LOCALAPPDATA") & "\temp\shortcut.lnk"
+
+' ショートカットを作成
+Dim wsh As Object
+Set wsh = CreateObject("WScript.Shell")
+Dim shortcut As Object
+Set shortcut = wsh.CreateShortcut(shortcutPath)
+shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+shortcut.Arguments = "-ExecutionPolicy Bypass -File """ & psScriptPath & """"
+shortcut.Save
+
+' ショートカットを実行
+wsh.Run shortcutPath
+        
+        End If
+End Sub
+
+Sub macro2(ByVal control As IRibbonControl)
+  Dim selector As New ExcelFileSelector
+    If selector.SelectFile Then
+        ' PowerShellスクリプトの内容
+        Dim psScript As String
+        
+        psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
+                "[IO.Compression.ZipFile]::ExtractToDirectory('" & selector.Path & "', 'extracted');"
+                
+psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
+                "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+                "Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
+                            "Read-Host 'Press Enter to exit...'"
+
+        ' PowerShellスクリプトのパス
+Dim psScriptPath As String
+psScriptPath = Environ("LOCALAPPDATA") & "\temp\script.ps1"
+
+' PowerShellスクリプトを生成
+Dim fso As Object
+Set fso = CreateObject("Scripting.FileSystemObject")
+Dim ts As Object
+Set ts = fso.CreateTextFile(psScriptPath, True)
+ts.WriteLine psScript
+ts.Close
+
+' ショートカットのパス
+Dim shortcutPath As String
+shortcutPath = Environ("LOCALAPPDATA") & "\temp\shortcut.lnk"
+
+' ショートカットを作成
+Dim wsh As Object
+Set wsh = CreateObject("WScript.Shell")
+Dim shortcut As Object
+Set shortcut = wsh.CreateShortcut(shortcutPath)
+shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+shortcut.Arguments = "-ExecutionPolicy Bypass -File """ & psScriptPath & """"
+shortcut.Save
+
+' ショートカットを実行
+wsh.Run shortcutPath
+        
+        
+        End If
+End Sub
+
+Sub macro3(ByVal control As IRibbonControl)
+  Dim selector As New ExcelFileSelector
+    If selector.SelectFile Then
+        ' PowerShellスクリプトの内容
+        Dim psScript As String
+        
+          Dim newName As String
+    newName = Left(selector.Path, InStrRev(selector.Path, ".") - 1) & "_append.xlsm"
+    
+    psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
+               "[IO.Compression.ZipFile]::CreateFromDirectory('extracted', '" & newName & "');"
+        
+        psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
+"Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+"Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
+            "Read-Host 'Press Enter to exit...'"
+        
+        ' PowerShellスクリプトのパス
+Dim psScriptPath As String
+psScriptPath = Environ("LOCALAPPDATA") & "\temp\script.ps1"
+
+' PowerShellスクリプトを生成
+Dim fso As Object
+Set fso = CreateObject("Scripting.FileSystemObject")
+Dim ts As Object
+Set ts = fso.CreateTextFile(psScriptPath, True)
+ts.WriteLine psScript
+ts.Close
+
+' ショートカットのパス
+Dim shortcutPath As String
+shortcutPath = Environ("LOCALAPPDATA") & "\temp\shortcut.lnk"
+
+' ショートカットを作成
+Dim wsh As Object
+Set wsh = CreateObject("WScript.Shell")
+Dim shortcut As Object
+Set shortcut = wsh.CreateShortcut(shortcutPath)
+shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+shortcut.Arguments = "-ExecutionPolicy Bypass -File """ & psScriptPath & """"
+shortcut.Save
+
+' ショートカットを実行
+wsh.Run shortcutPath
+        
+        End If
+End Sub
+
+
+Sub macro4() '(ByVal control As IRibbonControl)
+    Dim selector As New ExcelFileSelector
+    If selector.SelectFile Then
+        ' PowerShellスクリプトの内容
+        Dim psScript As String
+        psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
+        "[IO.Compression.ZipFile]::ExtractToDirectory('" & selector.Path & "', 'extracted');"
+        ' relsファイルから特定のIDを削除
+        psScript = psScript & _
+                    "$xml = New-Object System.Xml.XmlDocument;" & _
+                    "if (Test-Path -Path 'extracted\_rels\.rels') {" & _
+                    "$xml.Load('extracted\_rels\.rels');" & _
+                    "$nsManager = New-Object System.Xml.XmlNamespaceManager($xml.NameTable);" & _
+                    "$nsManager.AddNamespace('ns', $xml.DocumentElement.NamespaceURI);" & _
+                    "$relationship = $xml.DocumentElement.SelectSingleNode('//ns:Relationship[@Id=''someID'']', $nsManager);" & _
+                    "if ($relationship -ne $null) {" & _
+                    "$relationship.ParentNode.RemoveChild($relationship);" & _
+                    "$xml.Save('extracted\_rels\.rels');" & _
+                    "}" & _
+                    "}"
+
+
+        ' customUIディレクトリを削除
+        psScript = psScript & _
+        "if (Test-Path -Path 'extracted\customUI') {" & _
+        "Remove-Item -Recurse -Force 'extracted\customUI';" & _
+        "}"
+
+
+        ' ブックを再生成
+        psScript = psScript & _
+        "Remove-Item -Path '" & selector.Path & "';" & _
+        "[IO.Compression.ZipFile]::CreateFromDirectory('extracted', '" & selector.Path & "');" & _
+        "Remove-Item -Recurse -Force 'extracted';" & _
+        "Read-Host 'Press Enter to exit...'"
+            
+' PowerShellスクリプトのパス
+Dim psScriptPath As String
+psScriptPath = Environ("LOCALAPPDATA") & "\temp\script.ps1"
+
+' PowerShellスクリプトを生成
+Dim fso As Object
+Set fso = CreateObject("Scripting.FileSystemObject")
+Dim ts As Object
+Set ts = fso.CreateTextFile(psScriptPath, True)
+ts.WriteLine psScript
+ts.Close
+
+' ショートカットのパス
+Dim shortcutPath As String
+shortcutPath = Environ("LOCALAPPDATA") & "\temp\shortcut.lnk"
+
+' ショートカットを作成
+Dim wsh As Object
+Set wsh = CreateObject("WScript.Shell")
+Dim shortcut As Object
+Set shortcut = wsh.CreateShortcut(shortcutPath)
+shortcut.TargetPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+shortcut.Arguments = "-ExecutionPolicy Bypass -File """ & psScriptPath & """"
+shortcut.Save
+
+' ショートカットを実行
+wsh.Run shortcutPath
+            
+    End If
+End Sub
