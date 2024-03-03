@@ -1,3 +1,5 @@
+ObjectName ExcelFileSelector
+
 Option Explicit
 
 Private xlsmPath As String
