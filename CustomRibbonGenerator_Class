@@ -1,0 +1,21 @@
+Option Explicit
+
+Private xlsmPath As String
+
+Public Property Get Path() As String
+    Path = xlsmPath
+End Property
+
+Public Function SelectFile() As Boolean
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    fd.Title = "Select an Excel file"
+    fd.Filters.Clear
+    fd.Filters.Add "Excel files", "*.xlsm"
+    If fd.Show = True Then
+        xlsmPath = fd.SelectedItems(1)
+        SelectFile = True
+    Else
+        SelectFile = False
+    End If
+End Function
