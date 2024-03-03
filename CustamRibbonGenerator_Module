@@ -1,3 +1,5 @@
+ObjectName CustomRibbonGenerator
+
 Option Explicit
 
 Sub macro1(ByVal control As IRibbonControl)
