@@ -38,8 +38,7 @@ Sub macro1(ByVal control As IRibbonControl)
                     "[IO.Compression.ZipFile]::CreateFromDirectory('extracted', '" & selector.Path & "');" & _
                     "Remove-Item -Recurse -Force 'extracted';"
                     
-psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
-                    "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+psScript = psScript & "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
                     "Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
                                 "Read-Host 'Press Enter to exit...'"
 
@@ -83,8 +82,7 @@ Sub macro2(ByVal control As IRibbonControl)
         psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
                 "[IO.Compression.ZipFile]::ExtractToDirectory('" & selector.Path & "', 'extracted');"
                 
-psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
-                "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+psScript = psScript & "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
                 "Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
                             "Read-Host 'Press Enter to exit...'"
 
@@ -132,8 +130,7 @@ Sub macro3(ByVal control As IRibbonControl)
     psScript = "Add-Type -A 'System.IO.Compression.FileSystem';" & _
                "[IO.Compression.ZipFile]::CreateFromDirectory('extracted', '" & newName & "');"
         
-        psScript = psScript & "Read-Host 'Press Enter to exit...';" & _
-"Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
+        psScript = psScript & "Remove-Item -Path ""$env:LOCALAPPDATA\temp\shortcut.lnk"";" & _
 "Remove-Item -Path ""$env:LOCALAPPDATA\temp\script.ps1"";" & _
             "Read-Host 'Press Enter to exit...'"
         
