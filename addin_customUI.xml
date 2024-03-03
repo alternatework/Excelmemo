@@ -1,0 +1,14 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+  <ribbon>
+    <tabs>
+      <tab id="CustomTab" label="拡張アドイン">
+        <group id="TabCtrl" label="タブコントロール">
+          <button id="Button1" label="垂直表示 名称変更" imageMso="Bullets" size="large" onAction="ThisWorkbook.macro1" />
+        </group>
+                <group id="RMTools" label=" リスク予報 ">
+          <button id="Button2" label=" 掲示用 設定･印刷" imageMso="PrintPreviewAndPrint" size="large" onAction="ThisWorkbook.macro2" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
