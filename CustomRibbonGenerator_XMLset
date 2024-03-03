@@ -1,0 +1,15 @@
+.rels
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/><Relationship Id="someID" Type="http://schemas.microsoft.com/office/2006/relationships/ui/extensibility" Target="customUI/customUI.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>
+
+customUI.xml
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui">
+<ribbon>
+<tabs>
+<tab id="customribbongenerator" label="CRG">
+<group id="CRGGroupA" label="カスタムリボンメニュー">
+<button id="CRGButtonA" label="登録" imageMso="AnimationAddGallery" size="large" onAction="CustomRibbonGenerator.macro1" />
+<button id="CRGButtonB" label="編集" imageMso="EditListItems" size="large" onAction="CustomRibbonGenerator.macro2" />
+<button id="CRGButtonC" label="作成" imageMso="UMLPackages" size="large" onAction="CustomRibbonGenerator.macro3" />
+<button id="CRGButtonD" label="解除" imageMso="CurrentEraser" size="large" onAction="CustomRibbonGenerator.macro4" />
+</group></tab></tabs></ribbon></customUI>
