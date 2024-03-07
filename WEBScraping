@@ -1,0 +1,46 @@
+# GUI for parameter selection from a list
+Add-Type -AssemblyName System.Windows.Forms
+$form = New-Object System.Windows.Forms.Form
+$listBox = New-Object System.Windows.Forms.ListBox
+$button = New-Object System.Windows.Forms.Button
+
+# Fetch page HTML
+$response = Invoke-WebRequest -Uri "https://example.com/page"
+
+# Extract all parameters (e.g., class names) from the HTML
+$pattern = "class=`"([^`"]+)`""
+$matches = [regex]::Matches($response.Content, $pattern)
+
+# Add unique parameters to the list box
+$matches | ForEach-Object {
+    $listBox.Items.Add($_.Groups[1].Value) | Out-Null
+}
+
+# Configure button
+$button.Text = "OK"
+$button.Add_Click({
+    $form.Tag = $listBox.SelectedItem
+    $form.Close()
+})
+
+# Configure form
+$form.Text = "パラメータ選択"
+$form.Controls.Add($listBox)
+$form.Controls.Add($button)
+$form.AutoSize = $true
+$form.ShowDialog()
+
+# User selected parameter
+$selectedParameter = $form.Tag
+
+# Extract information based on selected parameter
+$pattern = "<div class=`"$selectedParameter`">(.*?)</div>"
+$matches = [regex]::Matches($response.Content, $pattern)
+
+# Output results
+$matches | ForEach-Object {
+    [PSCustomObject]@{
+        Parameter = $selectedParameter
+        Content = $_.Groups[1].Value
+    }
+}
