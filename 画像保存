@@ -1,0 +1,836 @@
+Clipboard_Main_Module
+
+'///宣言セクションに記述///
+Option Explicit
+Option Private Module
+
+Public Enum InterpolationMode ' 補間方法定数列挙（列挙子型名InterpolationMode.列挙子名InterpolationModeInvalidで呼び出し）
+    InterpolationModeInvalid = -1 'QualityMode列挙体の要素Invalid（無効なモードを指定）と等価
+    InterpolationModeDefault = 0 '既定のモード
+    InterpolationModeLowQuality = 1 '低品質補間
+    InterpolationModeHighQuality = 2 '高品質補間
+    InterpolationModeBilinear = 3 '双一次補間、バイリニア法
+    InterpolationModeBicubic = 4 '双三次補間、バイキュービック法
+    InterpolationModeNearestNeighbor = 5 '最近傍補間、ニアレストネイバー法
+    InterpolationModeHighQualityBilinear = 6 '高品質双一次補間
+    InterpolationModeHighQualityBicubic = 7 '高品質双三次補間
+End Enum
+
+Private Type GdiplusStartupInput
+    GdiplusVersion As Long
+    DebugEventCallback As Long
+    SuppressBackgroundThread As Long
+    SuppressExternalCodecs As Long
+End Type
+
+Private Type GUID
+    Data1 As Long
+    Data2 As Integer
+    Data3 As Integer
+    Data4(0 To 7) As Byte
+End Type
+
+Private Const QUALITY_PARAMS As String = "{1D5BE4B5-FA4A-452D-9CDD-5DB35105E7EB}" 'System.Drawing.Imaging.Encoder[Quality]_https://learn.microsoft.com/ja-jp/dotnet/api/system.drawing.imaging.encoder.quality?view=dotnet-plat-ext-8.0#system-drawing-imaging-encoder-quality
+Private Const ENCODER_BMP    As String = "{557CF400-1A04-11D3-9A73-0000F81EF32E}" 'Class Identifier[image/bmp]_https://learn.microsoft.com/en-us/windows/win32/gdiplus/-gdiplus-retrieving-the-class-identifier-for-an-encoder-use
+Private Const ENCODER_JPG    As String = "{557CF401-1A04-11D3-9A73-0000F81EF32E}" 'Class Identifier[image/jpeg]
+Private Const ENCODER_GIF    As String = "{557CF402-1A04-11D3-9A73-0000F81EF32E}" 'Class Identifier[image/gif]
+Private Const ENCODER_TIF    As String = "{557CF405-1A04-11D3-9A73-0000F81EF32E}" 'Class Identifier[image/tiff]
+Private Const ENCODER_PNG    As String = "{557CF406-1A04-11D3-9A73-0000F81EF32E}" 'Class Identifier[image/png]
+
+'#If VBA7 Then
+
+' // クリップボード関係
+    Private Declare PtrSafe Function OpenClipboard Lib "user32.dll" ( _
+            ByVal hWnd As LongPtr) As Long
+    Private Declare PtrSafe Function GetClipboardData Lib "user32.dll" ( _
+            ByVal wFormat As LongPtr) As Long
+    Private Declare PtrSafe Function CloseClipboard Lib "user32.dll" () As Long
+    ' // GDI+関係
+    Private Declare PtrSafe Function GdiplusStartup Lib "GDIPlus" ( _
+            token As LongPtr, _
+            inputBuf As GdiplusStartupInput, _
+            Optional ByVal outputBuf As LongPtr = 0) As Long
+    Private Declare PtrSafe Function GdiplusShutdown Lib "GDIPlus" ( _
+            ByVal token As LongPtr) As Long
+    Private Declare PtrSafe Function GdipCreateBitmapFromHBITMAP Lib "GDIPlus" ( _
+            ByVal hbm As LongPtr, _
+            ByVal hpal As LongPtr, _
+            ByRef bitmap As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipDisposeImage Lib "GDIPlus" ( _
+            ByVal image As LongPtr) As Long
+    Private Declare PtrSafe Function GdipSaveImageToFile Lib "GDIPlus" ( _
+            ByVal image As LongPtr, _
+            ByVal filename As LongPtr, _
+            ByRef clsidEncoder As GUID, _
+            encoderParams As Any) As Long
+    Private Declare PtrSafe Function CLSIDFromString Lib "ole32" ( _
+            ByVal lpsz As Any, _
+            ByRef pCLSID As GUID) As Long
+    Private Declare PtrSafe Function GdipGetImageHeight Lib "GDIPlus" ( _
+            ByVal image As LongPtr, _
+            ByRef Height As LongPtr) As Long
+    Private Declare PtrSafe Function GdipGetImageWidth Lib "GDIPlus" ( _
+            ByVal image As LongPtr, _
+            ByRef Width As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipGetImageGraphicsContext Lib "gdiplus.dll" ( _
+            ByVal image As LongPtr, graphics As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipCreateBitmapFromGraphics Lib "gdiplus.dll" ( _
+            ByVal Width As LongPtr, _
+            ByVal Height As LongPtr, _
+            ByVal Target As LongPtr, _
+            bitmap As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipSetInterpolationMode Lib "gdiplus.dll" ( _
+            ByVal graphics As LongPtr, _
+            ByVal nInterpolationMode As InterpolationMode) As Long
+            
+    Private Declare PtrSafe Function GdipDeleteGraphics Lib "gdiplus.dll" ( _
+            ByVal graphics As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipDrawImageRectI Lib "gdiplus.dll" ( _
+            ByVal graphics As LongPtr, _
+            ByVal image As LongPtr, _
+            ByVal x As LongPtr, ByVal y As LongPtr, _
+            ByVal Width As LongPtr, ByVal Height As LongPtr) As Long
+            
+    Private Declare PtrSafe Function GdipCreateHBITMAPFromBitmap Lib "gdiplus.dll" ( _
+            ByVal bitmap As LongPtr, _
+            hbmReturn As LongPtr, _
+            ByVal background As LongPtr) As Long
+
+    Private Declare PtrSafe Function DeleteObject Lib "gdi32" ( _
+        ByVal hObject As LongPtr) As Long
+            
+    Private Type EncoderParameter
+        GUID As GUID
+        NumberOfValues As LongPtr
+        TypeAPI As LongPtr
+        Value As LongPtr
+    End Type
+    
+    Private Type EncoderParameters
+        count As LongPtr
+        Parameter(0 To 15) As EncoderParameter
+    End Type
+
+Public m_GDIplusToken 'トークンはソースコードを構成する単語や記号の最小単位のこと
+Private Const CF_BITMAP   As Long = 2
+'///ここまで///
+
+
+'///////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+Sub SelectionCells_to_WithoutPicture(filePath As String, outPutHeight As Long, ByVal strExt As String, ByVal lngQ As Long)
+
+    Dim lngWidth, lngHeight
+    Dim strReceive As String
+    Dim ret
+    Dim hBmp2
+    Dim pDstBmp
+    Dim pGraphics
+    Dim GdipBmpHdl
+    Dim hBmp As OLE_HANDLE
+    Dim IntMode As InterpolationMode
+    'GDI+初期化
+    If GDIplus_Initialize() = False Then
+        MsgBox "GDI+ を初期化できません", vbCritical: Exit Sub
+    End If
+    'クリップボードのBitmap ハンドル取得
+    hBmp = pvGetHBitmapFromClipboard()
+    If hBmp = 0 Then Exit Sub
+    'GDI+BITMAPを作成
+    Call GdipCreateBitmapFromHBITMAP(hBmp, 0&, GdipBmpHdl) 'クリップボードのBitmapハンドルを基に、GDI+のBitmap作成。GdipBmpHdlは作成したBitmapのハンドル
+    Call GdipGetImageWidth(GdipBmpHdl, lngWidth) '幅取得
+    Call GdipGetImageHeight(GdipBmpHdl, lngHeight) '高さ取得
+    strReceive = Receive_Range(lngWidth, lngHeight) '処理可能か調べる
+    If 0 < Len(strReceive) Then
+        MsgBox strReceive, vbExclamation + vbOKOnly: GoSub TERMINATE
+    End If
+    'コピー
+    Call GdipGetImageGraphicsContext(GdipBmpHdl, pGraphics) '作成したGDI+のイメージのグラフィックコンテキスト取得。pGraphicsは生成されたグラフィックオブジェクト
+    Call GdipCreateBitmapFromGraphics(lngWidth, lngHeight, pGraphics, pDstBmp) 'グラフィックオブジェクトからBitmapを作成。pDstBmpは生成されたビットマップ
+    Call GdipDeleteGraphics(pGraphics) 'グラフィックオブジェクトを削除
+    If GdipGetImageGraphicsContext(pDstBmp, pGraphics) = 0 Then '作成したBitmapのグラフィックコンテキスト取得
+        '補間方法の設定
+        IntMode = InterpolationMode.InterpolationModeBicubic
+        Call GdipSetInterpolationMode(pGraphics, IntMode) '画質設定
+        'コピー。変倍も可能
+        Call GdipDrawImageRectI(pGraphics, GdipBmpHdl, 0, 0, lngWidth, lngHeight) '変倍したイメージオブジェクトを描く
+       'Bitmapオブジェクトのハンドルを作成
+        Call GdipCreateHBITMAPFromBitmap(pDstBmp, hBmp2, 0&) 'hBmp2は作成されたBitmapハンドル
+    End If
+    Call GdipDeleteGraphics(pGraphics)
+    '保存
+    Call SaveImageToFile(hBmp2, filePath, strExt, lngQ)
+TERMINATE: 'OK
+    'イメージ、オブジェクトの廃棄
+    Call DeleteObject(hBmp2)
+    Call GdipDisposeImage(pDstBmp)
+    Call GdipDisposeImage(GdipBmpHdl)
+    'GDI+終了
+    Call Gdiplus_Shutdown
+End Sub
+        
+Private Function GDIplus_Initialize() As Boolean 'GDI+初期化
+    Dim nStatus As Long
+    Dim uGdiStartupInput As GdiplusStartupInput
+    If m_GDIplusToken <> 0 Then Call Gdiplus_Shutdown
+    With uGdiStartupInput
+        .GdiplusVersion = 1
+        .DebugEventCallback = 0
+        .SuppressBackgroundThread = 0
+        .SuppressExternalCodecs = 0
+    End With
+    nStatus = GdiplusStartup(m_GDIplusToken, uGdiStartupInput, 0&)
+    GDIplus_Initialize = CBool(nStatus = 0)
+End Function
+
+Private Function Gdiplus_Shutdown() As Long 'GDI+終了
+    If m_GDIplusToken <> 0 Then
+        Call GdiplusShutdown(m_GDIplusToken)
+        m_GDIplusToken = 0
+    End If
+End Function
+
+'GDI+からファイルへ書き出し
+Private Function SaveImageToFile(ByVal hBmp, ByVal sFilename As String, Optional ByVal sFormat As String = "JPG", Optional ByVal nQuarity As Long = 60) As Boolean
+    Dim sEncoderStr As String
+    Dim uEncoderParams   As EncoderParameters
+    If hBmp = 0 Then Exit Function
+    Select Case UCase$(sFormat)
+        Case "JPG": sEncoderStr = ENCODER_JPG
+        Case "GIF": sEncoderStr = ENCODER_GIF
+        Case "TIF": sEncoderStr = ENCODER_TIF
+        Case "PNG": sEncoderStr = ENCODER_PNG
+        Case Else: sEncoderStr = ENCODER_BMP
+    End Select
+    ' JPEGのクオリティー設定
+    If UCase$(sFormat) = "JPG" Then
+        nQuarity = Abs(nQuarity)
+        If nQuarity > 100 Then nQuarity = 100
+        uEncoderParams.count = 1
+        With uEncoderParams.Parameter(0)
+            .GUID = pvToCLSID(ENCODER_JPG)
+            .TypeAPI = 4
+            .Value = VarPtr(nQuarity)
+            .NumberOfValues = 1
+        End With
+    End If
+    ' 保存
+    Dim nStatus As Long
+    Dim pNewImage As Variant
+    nStatus = GdipCreateBitmapFromHBITMAP(hBmp, 0&, pNewImage)
+    If nStatus = 0 Then
+        If UCase$(sFormat) = "JPG" Then
+            nStatus = GdipSaveImageToFile(pNewImage, StrPtr(sFilename), pvToCLSID(sEncoderStr), uEncoderParams)
+        Else
+            nStatus = GdipSaveImageToFile(pNewImage, StrPtr(sFilename), pvToCLSID(sEncoderStr), ByVal 0&)
+        End If
+        SaveImageToFile = CBool(nStatus = 0)
+        Call GdipDisposeImage(pNewImage)
+    End If
+End Function
+
+Private Function pvGetHBitmapFromClipboard() As OLE_HANDLE 'クリップボードのBitmap取得
+    If OpenClipboard(0&) <> 0 Then
+        pvGetHBitmapFromClipboard = GetClipboardData(CF_BITMAP)
+        Call CloseClipboard
+    Else
+        pvGetHBitmapFromClipboard = 0
+    End If
+End Function
+
+Private Function pvToCLSID(ByVal s As String) As GUID '文字列からCLSID取得
+    Call CLSIDFromString(StrPtr(s), pvToCLSID)
+End Function
+
+'Option_Date_Module
+Sub STI_Option_Form_Show()
+
+    STI_Option_Form.Show
+
+End Sub
+
+Function Date_Time_FN() As String
+
+    Dim datTime As Date
+    Dim datToday As Date
+    Dim strFileName(0 To 8) As String
+    
+    datToday = Date: datTime = Time
+    
+    strFileName(0) = Mid$(CStr(Year(datToday)), 3)
+    strFileName(1) = "_"
+    strFileName(2) = Format$(datToday, "mm")
+    strFileName(3) = Format$(datToday, "dd")
+    strFileName(4) = "_"
+    strFileName(5) = Format$(datTime, "hh")
+    strFileName(6) = Format$(datTime, "nn")
+    strFileName(7) = "_"
+    strFileName(8) = Format$(datTime, "ss")
+    
+    Date_Time_FN = Join$(strFileName, vbNullString)
+
+End Function
+
+Function isDirectoryExtst(ByVal DirPath As String) As String
+
+    isDirectoryExtst = Dir(DirPath, vbDirectory)
+
+End Function
+
+'Selection_Main_Module
+Public strSelFilePath As String
+Public bolClipFlg As Boolean
+
+Sub Save_Selection_Without_Picture(Optional n As String = "")
+    
+    Dim strExt As String
+    Dim strSep As String
+    Dim varOption As Variant
+    
+    strSelFilePath = vbNullString
+    
+    With Application
+    
+        If Len(Selection_Type) <> 0 Then
+        
+            MsgBox Selection_Type(), vbOKOnly + vbExclamation: Exit Sub
+        
+        End If
+        
+        varOption = .ThisWorkbook.Worksheets(1).Range("A1:A4").Value
+        strSep = .PathSeparator
+        
+        If CBool(varOption(1, 1)) Then
+        
+            strSelFilePath = STI_Select_Path()
+            
+            If Len(strSelFilePath) = 0 Then Exit Sub
+            
+            If InStrRev(strSelFilePath, ".", , vbTextCompare) = 0 Then Exit Sub
+            
+            strExt = LCase$(Mid$(strSelFilePath, InStrRev(strSelFilePath, ".", , vbTextCompare) + 1))
+            
+        Else
+        
+            If CBool(varOption(2, 1)) Then
+            
+                strSelFilePath = STI_DeskTop_Path()
+            
+            Else
+            
+                strSelFilePath = CStr(varOption(3, 1))
+                
+                If Len(isDirectoryExtst(strSelFilePath)) = 0 Then
+                
+                    MsgBox "指定のフォルダが見つからないため" & vbCrLf & "デスクトップに保存します", vbExclamation + vbOKOnly
+                    strSelFilePath = STI_DeskTop_Path()
+                    
+                End If
+            
+            End If
+        
+            strExt = LCase$(CStr(varOption(4, 1)))
+            
+            If n = "" Then
+            
+                strSelFilePath = strSelFilePath & strSep & Date_Time_FN() & "." & strExt
+                
+            Else
+            
+                If InStr(1, n, strSep, vbBinaryCompare) = 0 Then
+                                    
+                    If InStrRev(n, ".") = 0 Then
+                        
+                        strSelFilePath = strSelFilePath & strSep & n & "." & strExt
+                
+                    Else
+                        
+                        Select Case UCase(Mid$(n, InStrRev(n, ".") + 1))
+                        
+                            Case "PNG", "JPG", "GIF", "TIF", "BMP"
+                            
+                                strSelFilePath = strSelFilePath & strSep & n
+                            
+                            Case Else
+                            
+                                strSelFilePath = strSelFilePath & strSep & n & "." & strExt
+                        
+                        End Select
+                        
+                    End If
+                    
+                Else
+                
+                    If Len(Dir(Left$(n, InStrRev(n, strSep) - 1), vbDirectory)) = 0 Then
+                    
+                        MsgBox "フォルダが見つかりません", vbExclamation + vbOKOnly: Exit Sub
+                        
+                    End If
+                
+                    If InStrRev(n, ".") = 0 Then
+                        
+                        strSelFilePath = n & "." & strExt
+                
+                    Else
+                        
+                        Select Case UCase(Mid$(n, InStrRev(n, ".") + 1))
+                        
+                            Case "PNG", "JPG", "GIF", "TIF", "BMP"
+                            
+                                strSelFilePath = n
+                            
+                            Case Else
+                            
+                                strSelFilePath = n & "." & strExt
+                        
+                        End Select
+                        
+                    End If
+                    
+                End If
+            
+            End If
+            
+            If Dir(strSelFilePath) <> "" Then
+            
+                strSelFilePath = Dir(vbNullString)
+                MsgBox "同名のファイルが存在します。処理を中止します。", vbExclamation + vbOKOnly
+                Exit Sub
+            
+            End If
+        
+        End If
+        
+        On Error Resume Next
+        
+            .Selection.CopyPicture Appearance:=xlScreen, Format:=xlBitmap
+            
+            If Err.Number <> 0 Then
+            
+                MsgBox Err.Description, vbExclamation + vbOKOnly
+                Err.Clear
+                Exit Sub
+            
+            End If
+            
+        On Error GoTo 0
+        
+        Call SelectionCells_to_WithoutPicture(strSelFilePath, 100, strExt, 85)
+        
+    End With
+    
+End Sub
+
+Private Function Selection_Type() As String
+
+    Const DPI As Long = 96
+    Const PPI As Long = 72
+        
+    Dim lngSelectionW As Long
+    Dim lngSelectionH As Long
+
+    With Application
+    
+        If UCase$(TypeName(.Selection)) = UCase("RANGE") Then
+        
+            With .ActiveWindow
+            
+                 lngSelectionW = ((.Selection.Width * DPI / PPI) * (.Zoom / 100))
+                 lngSelectionH = ((.Selection.Height * DPI / PPI) * (.Zoom / 100))
+                
+            End With
+                
+            Selection_Type = Receive_Range(lngSelectionW, lngSelectionH)
+        
+        End If
+    
+    End With
+
+End Function
+
+Public Function Receive_Range(ByVal w As Long, ByVal h As Long) As String
+
+    If h < 3201 And w < 2401 Then
+
+    ElseIf h < 2401 And w < 3201 Then
+
+    Else
+
+        Receive_Range = "処理対応範囲を超えています" & vbCrLf & "最大処理対応範囲：2400×3200ピクセル"
+
+    End If
+    
+'STI_Module
+'Option Private Module
+
+Dim strFilePath As String
+
+Function STI_ActB_Path() As String
+
+    STI_ActB_Path = ActiveWorkbook.Path
+
+End Function
+
+Public Function STI_DeskTop_Path() As String
+
+    Dim objWShell As Object 'WScript.Shell
+
+    Set objWShell = CreateObject("WScript.Shell")
+
+    STI_DeskTop_Path = objWShell.SpecialFolders("Desktop")
+    
+End Function
+
+Public Function STI_Select_Path() As String
+
+    Dim lngLD As Long
+    Dim strIFN As String
+
+    With Excel.Application
+    
+'        Call Change_Drive
+        strIFN = Date_Time_FN()
+                
+        strFilePath = .GetSaveAsFilename(InitialFileName:=strIFN, FileFilter:="PNG,*.png,JPG,*.jpg,GIF,*.gif,BMP,*.bmp,TIFF,*.tif")
+        
+        If UCase(strFilePath) = UCase("False") Then Exit Function
+                
+        If Dir(strFilePath) <> "" Then
+        
+            strIFN = Dir(vbNullString)
+        
+            If MsgBox("上書きしますか？", vbQuestion + vbYesNo, "確認") = vbNo Then Exit Function
+                                                   
+        End If
+        
+        strIFN = Dir(vbNullString)
+            
+        STI_Select_Path = strFilePath
+                
+    End With
+
+End Function
+
+Private Sub Change_Drive() 'ドライブを検索し設定するサブルーチン
+
+    Dim strDrive As String
+    Dim strACVBPath As String
+
+    strACVBPath = STI_ActB_Path
+    
+    If Len(strACVBPath) = 0 Then strACVBPath = STI_DeskTop_Path
+    
+    With Excel.Application
+    
+        If Len(strACVBPath) = 0 Then Exit Sub
+        
+        If InStr(1, strACVBPath, ":", vbTextCompare) = 0 Then strACVBPath = STI_DeskTop_Path
+    
+        strDrive = Left$(strACVBPath, InStr(1, strACVBPath, ":", vbTextCompare) - 1)
+        
+        If Len(strDrive) = 1 Then
+        
+            ChDrive strDrive
+            ChDir strACVBPath
+            
+        End If
+
+    End With
+    
+End Sub
+
+
+STI_Option_Form
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------
+Option Explicit
+
+Dim bolOption As Boolean
+
+Private Sub CommandButton1_Click()
+
+    Dim strDir As String
+
+    With Me
+    
+        strDir = Directory_Search()
+    
+        If Len(strDir) = 0 Then Exit Sub
+
+        .TextBox1.Value = strDir
+    
+    End With
+
+End Sub
+
+Private Sub CommandButton2_Click()
+
+    Dim i As Long
+    Dim Flg1 As Boolean
+    Dim Flg2 As Boolean
+    Dim strDirPath As String
+    Dim strExtLabel As String
+    
+    With Me
+    
+        If .OptionButton4.Value And Len(.TextBox1.Value) = 0 Then
+        
+            MsgBox "ファイルを保存する任意のフォルダを選択してください", vbExclamation + vbOKOnly: Exit Sub
+        
+        End If
+    
+        Flg1 = .OptionButton1.Value
+        Flg2 = .OptionButton3.Value
+        strDirPath = .TextBox1.Value
+        
+        
+        For i = 5 To 9
+        
+            If .Controls("OptionButton" & i).Value Then
+            
+                strExtLabel = .Controls("OptionButton" & i).Caption
+            
+            End If
+        
+        Next
+    
+    End With
+    
+    With ThisWorkbook.Worksheets(1)
+    
+        .Range("A1").Value = Flg1
+        .Range("A2").Value = Flg2
+        .Range("A3").Value = strDirPath
+        .Range("A4").Value = strExtLabel
+    
+    End With
+    
+    MsgBox "設定が完了しました", vbInformation + vbOKOnly
+    
+    Unload Me
+
+End Sub
+
+Private Sub CommandButton3_Click()
+
+    Unload Me
+
+End Sub
+
+Private Sub Frame1_Click()
+
+End Sub
+
+Private Sub OptionButton1_Click()
+
+    Call Controls_Enabled(False)
+
+End Sub
+
+Private Sub OptionButton2_Click()
+
+    Call Controls_Enabled(True)
+
+End Sub
+
+Private Sub OptionButton3_Click()
+
+    With Me
+    
+        .TextBox1.Value = ""
+        .TextBox1.Enabled = False
+        .CommandButton1.Enabled = False
+    
+    End With
+
+End Sub
+
+Private Sub OptionButton4_Click()
+
+    Dim strDir As String
+
+    With Me
+    
+        .TextBox1.Enabled = True
+        .CommandButton1.Enabled = True
+        
+        If bolOption Then Exit Sub
+        
+        strDir = Directory_Search()
+    
+        If Len(strDir) = 0 Then Exit Sub
+
+        .TextBox1.Value = strDir
+    
+    End With
+
+End Sub
+
+Private Sub Controls_Enabled(ByVal Flg As Boolean)
+
+    Dim i As Long
+    
+    With Me
+    
+        For i = 3 To 9
+        
+            .Controls("OptionButton" & i).Enabled = Flg
+        
+        Next
+        
+        For i = 2 To 3
+        
+            .Controls("Frame" & i).Enabled = Flg
+        
+        Next
+        
+        If Flg Then
+        
+            If .OptionButton4.Value Then
+            
+                .TextBox1.Enabled = Flg
+                .CommandButton1.Enabled = Flg
+            
+            End If
+            
+        Else
+        
+            .TextBox1.Enabled = Flg
+            .CommandButton1.Enabled = Flg
+        
+        End If
+        
+    End With
+
+End Sub
+
+Private Function Directory_Search() As String 'フォルダ選択
+
+    With Application.FileDialog(msoFileDialogFolderPicker)
+    
+        If .Show = True Then Directory_Search = .SelectedItems(1)
+        
+    End With
+    
+End Function
+
+Private Sub UserForm_Initialize()
+
+    Dim i As Long
+    Dim varOption As Variant
+    
+    bolOption = True
+    varOption = ThisWorkbook.Worksheets(1).Range("A1:A4").Value
+        
+    With Me
+    
+        If CBool(varOption(1, 1)) Then
+        
+            .OptionButton1.Value = True
+            
+        Else
+        
+            .OptionButton2.Value = True
+        
+        End If
+        
+        
+        If CBool(varOption(2, 1)) Then
+        
+            .OptionButton3.Value = True
+            
+        Else
+        
+            .OptionButton4.Value = True
+        
+        End If
+        
+        .TextBox1.Value = CStr(varOption(3, 1))
+                
+        For i = 5 To 9
+        
+            If UCase$(varOption(4, 1)) = UCase$(.Controls("OptionButton" & i).Caption) Then
+            
+                .Controls("OptionButton" & i).Value = True: Exit For
+            
+            End If
+        
+        Next
+    
+    End With
+    
+    bolOption = False
+
+End Sub
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Frame1
+300*357_12*12
+ファイルの保存設定
+
+Frame2
+120*330_12*78
+保存場所
+
+Frame3
+60*330_12*216
+保存形式
+
+OptionButton1
+108*18_18*18
+名前をつけて保存
+
+
+OptionButton2
+142.5*18*_18*48
+自動でファイル名をつけて保存
+
+OptionButton3
+108*18_18*18
+デスクトップ
+
+OptionButton4
+108*18_18*48
+任意のフォルダ
+
+OptionButton5
+42.75*18_18*24
+PNG
+
+OptionButton6
+42.75*18_18*84
+JPG
+
+OptionButton7
+42.75*18_18*144
+GIF
+
+OptionButton8
+42.75*18_18*204
+BMP
+
+OptionButton9
+42.75*18_18*264
+TIF
+
+TextBox1
+18*252＿30*78
+
+
+CommandButton1
+18*18＿282*78
+...
+
+CommandButton2
+
+OK
+
+CommandButton3
+true
+Cancel
+
+「選択範囲を画像で保存」設定STI_Option_Form
