@@ -1,0 +1,55 @@
+# ファイルダイアログを使用してファイルを選択する
+Add-Type -AssemblyName System.Windows.Forms
+$openFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+$openFileDialog.Filter = 'バイナリファイル (*.bin)|*.bin'
+if ($openFileDialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+    $filePath = $openFileDialog.FileName
+} else {
+    Write-Host "ファイルが選択されませんでした。"
+    return
+}
+
+# バックアップファイルのパスを設定する
+$backupPath = [System.IO.Path]::ChangeExtension($filePath, "bak")
+
+# バイナリファイルを読み込む
+$originalData = [System.IO.File]::ReadAllBytes($filePath)
+
+# バックアップを作成する
+[System.IO.File]::WriteAllBytes($backupPath, $originalData)
+
+# 検索する文字列
+$searchString = "DPB"#+[char]34
+
+# 文字列をバイナリデータに変換する
+$searchBytes = [System.Text.Encoding]::UTF8.GetBytes($searchString)
+
+# バイナリデータ内で文字列を検索する
+$offset = 0
+while (($offset = [Array]::IndexOf($originalData, $searchBytes[0], $offset)) -ne -1) {
+# 検出した文字列の直後の"から"までの文字列を取得
+$startQuoteIndex = $offset + $searchBytes.Length
+$endQuoteIndex = [Array]::IndexOf($originalData, [byte]34, $startQuoteIndex) # 修正された部分
+$length = $endQuoteIndex - $startQuoteIndex
+
+    # 置換するバイナリデータを生成する
+    $replaceBytes = switch ($length) {
+        72 { [System.Text.Encoding]::UTF8.GetBytes("5052FCE319E3191CE7E4195EA06F5A4AC44F8F6D23359185D29AFD45A25338ECB9EE844A") }
+        74 { [System.Text.Encoding]::UTF8.GetBytes("CAC866CE3DEB3DEBC2153EEB80DE4D98748211412FFDF7B7C32858571B1825B6BE3FDC0238") }
+        76 { [System.Text.Encoding]::UTF8.GetBytes("1416B8E8C80FE50FE5F01B10E5B2D4938EAE982B7B4937E9EDD176561919DE277CB805A278FE") }
+        78 { [System.Text.Encoding]::UTF8.GetBytes("BEBC129FFE61E87EE87E1782E97E554D70094B134EFE6CB234608483990C44D35C4BF5CAE5B541") }
+        default { Continue }
+    }
+
+    # 長さに応じたパターンで置換するバイナリデータを設定する
+    if ($replaceBytes) {
+        # バイナリデータ内で置換を行う
+        [System.Array]::Copy($replaceBytes, 0, $originalData, $startQuoteIndex, $length)
+    }
+
+    # 次の検索開始位置を更新
+    $offset = $endQuoteIndex + 1
+}
+
+# 置換後のデータをファイルに書き込む
+[System.IO.File]::WriteAllBytes($filePath, $originalData)
